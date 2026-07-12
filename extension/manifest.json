@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "RecallIQ",
+  "version": "1.0.0",
+  "description": "Automatically track LeetCode solutions and sync them to your GitHub repository. Developed with Integrity and Innovation by Sriii Technologies.",
+  
+  "permissions": [
+    "storage",
+    "identity"
+  ],
+
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "http://localhost:8080/*",
+    "https://*.onrender.com/*",
+    "https://github.com/*",
+    "https://api.github.com/*",
+    "https://*.chromiumapp.org/*"
+  ],
+
+  "icons": {
+    "16": "assets/logo.jpg",
+    "48": "assets/logo.jpg",
+    "128": "assets/logo.jpg"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["oauth.html", "oauth.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content.js"],
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content-bridge.js"]
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/logo.jpg",
+      "48": "assets/logo.jpg",
+      "128": "assets/logo.jpg"
+    }
+  }
+}

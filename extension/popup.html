@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RecallIQ</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="glass">
+        <div class="logo-section">
+            <div class="logo-dot"></div>
+            <div class="logo-text">RecallIQ</div>
+        </div>
+        <div class="profile-section" id="profile-area" style="display: none;">
+            <img class="profile-img" id="user-avatar" src="" alt="avatar">
+            <span class="profile-username" id="user-name"></span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 1. LOADING SCREEN -->
+        <div id="screen-loading" class="screen active">
+            <div class="spinner-full">
+                <div class="spinner-icon"></div>
+            </div>
+        </div>
+
+        <!-- 2. LOGIN SCREEN -->
+        <div id="screen-login" class="screen">
+            <div class="login-icon">🚀</div>
+            <div class="login-title">Track Your DSA Journey</div>
+            <div class="login-desc">Automatically track your LeetCode accepted solutions and sync them to your private/public GitHub repository.</div>
+            <button id="btn-login" class="btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                Login with GitHub
+            </button>
+        </div>
+
+        <!-- 3. SETUP REPOSITORY SCREEN -->
+        <div id="screen-setup" class="screen">
+            <div class="section-title">Configure Target Repository</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="repo-select">Select an existing repository:</label>
+                <select id="repo-select">
+                    <option value="" disabled selected>Loading repositories...</option>
+                </select>
+            </div>
+            <button id="btn-save-repo" class="btn-primary" style="margin-top: 4px; width: 100%;">Confirm & Activate</button>
+
+            <div style="text-align: center; color: var(--text-muted); font-size: 11px; margin: 8px 0;">— OR —</div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                <label class="form-label" for="new-repo-name">Create a new repository:</label>
+                <input type="text" id="new-repo-name" placeholder="e.g. leetcode-solutions" style="padding: 10px; background-color: #121b2d; border: 1px solid var(--border-glass); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                    <input type="checkbox" id="new-repo-private" checked style="width: auto; cursor: pointer;">
+                    <label class="form-label" for="new-repo-private" style="cursor: pointer; margin-bottom: 0;">Make repository private</label>
+                </div>
+            </div>
+            <button id="btn-create-repo" class="btn-primary" style="margin-top: 6px; width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);">Create & Connect</button>
+        </div>
+
+        <!-- 4. DASHBOARD SCREEN -->
+        <div id="screen-dashboard" class="screen">
+            <!-- Solved Count Card -->
+            <div class="summary-card glass">
+                <div>
+                    <div class="total-label">Solved Problems</div>
+                    <div class="total-val" id="stats-total">0</div>
+                </div>
+                <div class="stats-grid" style="width: 65%;">
+                    <div class="stat-card glass easy">
+                        <div class="stat-val" id="stats-easy">0</div>
+                        <div class="stat-label">Easy</div>
+                    </div>
+                    <div class="stat-card glass medium">
+                        <div class="stat-val" id="stats-medium">0</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                    <div class="stat-card glass hard">
+                        <div class="stat-val" id="stats-hard">0</div>
+                        <div class="stat-label">Hard</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Topics Section -->
+            <div>
+                <div class="section-title">Top Topics</div>
+                <div class="topics-list" id="stats-topics">
+                    <!-- Dynamic topic badges -->
+                    <span class="text-muted" style="font-size: 12px;">No topics solved yet.</span>
+                </div>
+            </div>
+
+            <!-- Recent Submissions Section -->
+            <div>
+                <div class="section-title">Recent Submissions</div>
+                <div class="sub-list" id="recent-list">
+                    <!-- Dynamic submission items -->
+                    <div class="text-muted" style="font-size: 12px; text-align: center; padding: 10px;">Solve problems on LeetCode to see them here!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="glass">
+        <div class="repo-status">
+            <div class="status-dot inactive" id="status-indicator"></div>
+            <span id="repo-status-text">Disconnected</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btn-change-repo" class="btn-link" style="display: none;">Change Repo</button>
+            <button id="btn-logout" class="btn-link" style="display: none;">Logout</button>
+        </div>
+    </footer>
+
+    <script src="utilities/config.js"></script>
+    <script src="services/storageService.js"></script>
+    <script src="services/apiService.js"></script>
+    <script src="components/footer.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

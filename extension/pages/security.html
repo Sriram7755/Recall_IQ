@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Policy - RecallIQ</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #090d16;
+            line-height: 1.6;
+        }
+        .content-card {
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 12px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #60a5fa;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        p {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            margin-bottom: 16px;
+        }
+        ul {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            margin-bottom: 16px;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        footer {
+            margin-top: 40px;
+            padding: 24px 0;
+            border-top: 1px solid var(--border-glass);
+        }
+    </style>
+</head>
+<body>
+    <div class="content-card glass">
+        <h1>Security Policy</h1>
+        <div class="subtitle">Effective Date: July 12, 2026 • Powered by Sriii Technologies</div>
+        
+        <p>At <strong>Sriii Technologies</strong>, our commitment to software security is absolute. The <strong>RecallIQ</strong> architecture enforces security best practices at rest, in transit, and during extension-page communication.</p>
+
+        <h2>1. Data Encryption at Rest</h2>
+        <p>When you log in using GitHub OAuth, we exchange the authorization code for an OAuth access token. Before writing this token to MongoDB Atlas, we encrypt it using the industry-standard <strong>AES-256-GCM</strong> (Advanced Encryption Standard in Galois/Counter Mode). 
+        *   Each token is encrypted with a unique, randomly generated Initialization Vector (IV).
+        *   Encryption keys are injected dynamically in production via environment variables and are never hardcoded.</p>
+
+        <h2>2. Data Transport Security</h2>
+        <ul>
+            <li>All network requests from the Chrome Extension popup, background service worker, and backend server utilize transport layer security (TLS/HTTPS).</li>
+            <li>Raw, unencrypted credentials or tokens are never transmitted over unencrypted HTTP channels.</li>
+        </ul>
+
+        <h2>3. JWT Authentication Model</h2>
+        <p>To protect backend API endpoints, the application generates a secure JSON Web Token (JWT) on successful login.
+        *   JWTs are signed with a strong cryptographic key on the backend.
+        *   The Chrome Extension stores the JWT token locally inside <code>chrome.storage.local</code>.
+        *   All authenticated requests (dashboard metrics, repo list, save submissions) must provide the token in the <code>Authorization: Bearer</code> header. Any request lacking a valid JWT is blocked with a <code>403 Forbidden</code>.</p>
+
+        <h2>4. Reporting Vulnerabilities</h2>
+        <p>If you discover any security issues or vulnerabilities in our extension or backend configuration, please do not open a public issue on GitHub. Instead, report it privately to our security team at <code>security@sriii_technologies.com</code>. We aim to address all verified reports within 48 hours.</p>
+    </div>
+    
+    <footer class="glass"></footer>
+    <script src="../components/footer.js"></script>
+</body>
+</html>

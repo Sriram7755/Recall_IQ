@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>About - RecallIQ</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #090d16;
+            line-height: 1.6;
+        }
+        .content-card {
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 12px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #60a5fa;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        p {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            margin-bottom: 16px;
+        }
+        ul {
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            margin-bottom: 16px;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        footer {
+            margin-top: 40px;
+            padding: 24px 0;
+            border-top: 1px solid var(--border-glass);
+        }
+    </style>
+</head>
+<body>
+    <div class="content-card glass">
+        <h1>RecallIQ</h1>
+        <div class="subtitle">Developed with Integrity and Innovation • Powered by Sriii Technologies</div>
+        
+        <p><strong>RecallIQ</strong> is a premium, open-source productivity companion designed for software engineers, competitive programmers, and students preparing for technical interviews. It bridges the gap between practice platforms and source control by automating the process of saving your solutions to GitHub.</p>
+
+        <h2>Key Features</h2>
+        <ul>
+            <li><strong>Automated Solution Tracking</strong>: Detects when you make a submission on LeetCode. Once it's "Accepted", it grabs your code, difficulty, language, description, and tags automatically.</li>
+            <li><strong>Intelligent Topic Classification</strong>: Organizes your repository cleanly. It classifies the primary DSA topic and puts solutions in corresponding folders (e.g. <code>LeetCode/Linked List/61-Rotate-List.java</code>) using standard dictionary rules and LLM validation.</li>
+            <li><strong>Interactive Glassmorphic Dashboard</strong>: View your real-time stats directly from the Chrome Extension popup, including unique solved metrics, difficulty ratios, and topic breakdowns.</li>
+            <li><strong>Secure OAuth Connectivity</strong>: Integrates seamlessly with GitHub OAuth to push solutions directly to your selected repository. Your keys are fully encrypted with AES-256-GCM.</li>
+        </ul>
+
+        <h2>About Sriii Technologies</h2>
+        <p>At <strong>Sriii Technologies</strong>, we strive to build high-performance developer tools that streamline daily engineering workflows. We believe in building utilities with integrity, absolute security, and design innovation.</p>
+        
+        <p>For support, contributions, or open-source issues, please check out the repository on GitHub or review our security policies.</p>
+    </div>
+    
+    <footer class="glass"></footer>
+    <script src="../components/footer.js"></script>
+</body>
+</html>
