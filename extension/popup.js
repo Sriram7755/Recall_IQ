@@ -15,18 +15,32 @@ function init() {
     
     StorageService.getToken((token) => {
         if (!token) {
+            console.log("🔑 No existing token found in storage.");
             showLoggedOut();
             return;
         }
 
-        // Fetch fresh profile state from backend
+        console.log("🔑 Existing token found:", token.substring(0, 10) + "...");
+        StorageService.getProfile((profile) => {
+            if (profile) {
+                console.log("👤 Existing profile found in storage:", profile.username);
+            } else {
+                console.log("👤 No existing profile found in storage.");
+            }
+        });
+
+        // Fetch fresh profile state from backend to verify token validity
+        console.log("📡 Fetching fresh user profile from backend to verify token...");
         ApiService.get("/api/profile", token, (profile) => {
+            console.log("✅ Token is valid. Fresh profile fetched successfully:", profile.username);
             // Cache updated profile info locally
             StorageService.setProfile(profile, () => {
+                console.log("💾 Profile saved.");
                 showLoggedIn(profile);
             });
         }, (err) => {
-            console.error("Session verification failed:", err);
+            console.error("❌ Session verification failed (invalid/expired token or server error):", err);
+            console.log("🧹 Clearing invalid credentials...");
             logout(); // clean local state
         });
     });
@@ -38,17 +52,40 @@ function showScreen(screenId) {
 }
 
 function showLoggedOut() {
-    showScreen("screen-login");
+    console.log("🖥️ Transitioning to logged-out screen, resetting UI...");
+    
+    // Clear user metadata in header
+    document.getElementById("user-name").textContent = "";
+    document.getElementById("user-avatar").src = "";
     document.getElementById("profile-area").style.display = "none";
     document.getElementById("btn-logout").style.display = "none";
     document.getElementById("btn-change-repo").style.display = "none";
     
+    // Clear dashboard stats
+    document.getElementById("stats-total").textContent = "0";
+    document.getElementById("stats-easy").textContent = "0";
+    document.getElementById("stats-medium").textContent = "0";
+    document.getElementById("stats-hard").textContent = "0";
+    document.getElementById("stats-topics").innerHTML = '<span class="text-muted" style="font-size: 12px;">No topics solved yet.</span>';
+    
+    // Clear dashboard recent submissions
+    document.getElementById("recent-list").innerHTML = '<div class="text-muted" style="font-size: 12px; text-align: center; padding: 10px;">Solve problems on LeetCode to see them here!</div>';
+    
+    // Clear setup fields
+    document.getElementById("repo-select").innerHTML = '<option value="" disabled selected>Loading repositories...</option>';
+    document.getElementById("new-repo-name").value = "";
+    document.getElementById("new-repo-private").checked = true;
+    
+    // Clear status footer
     const indicator = document.getElementById("status-indicator");
     indicator.className = "status-dot inactive";
     document.getElementById("repo-status-text").textContent = "Disconnected";
+
+    showScreen("screen-login");
 }
 
 function showLoggedIn(profile) {
+    console.log("👤 Active username displayed:", profile.username);
     // 1. Update Profile Area in header
     document.getElementById("user-name").textContent = profile.username;
     document.getElementById("user-avatar").src = profile.avatarUrl;
@@ -100,91 +137,99 @@ function loginWithGitHub() {
     btn.disabled = true;
     btn.innerHTML = "Connecting...";
 
-    const extensionId = chrome.runtime.id;
-    console.log("🆔 Current Extension ID (chrome.runtime.id):", extensionId);
-    console.log("ℹ️ Expected Extension ID:", "lhepkgngdjiiapldacaojilhdpmiemed");
-    if (extensionId !== "lhepkgngdjiiapldacaojilhdpmiemed") {
-        console.warn("⚠️ Installed extension ID does not match the expected ID (lhepkgngdjiiapldacaojilhdpmiemed). Ensure Render/GitHub settings support this ID.");
-    }
-    
-    console.log("📡 Requesting login URL from backend...");
-    ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
-        console.log("🔗 Auth redirect URL obtained successfully:", data.authUrl);
+    console.log("🧹 Clearing any existing credentials before starting new login...");
+    StorageService.clearAuth(() => {
+        console.log("🧹 Storage cleared: removed token and profile from chrome.storage.local.");
         
-        console.log("🚀 Launching Chrome Web Auth Flow...");
-        chrome.identity.launchWebAuthFlow({
-            url: data.authUrl,
-            interactive: true
-        }, (redirectUrl) => {
-            // Re-enable button when flow completes
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-
-            if (chrome.runtime.lastError) {
-                console.error("❌ Identity WebAuthFlow failed/cancelled:", chrome.runtime.lastError.message);
-                alert("Login cancelled or failed: " + chrome.runtime.lastError.message);
-                return;
-            }
+        const extensionId = chrome.runtime.id;
+        console.log("🆔 Current Extension ID (chrome.runtime.id):", extensionId);
+        console.log("ℹ️ Expected Extension ID:", "lhepkgngdjiiapldacaojilhdpmiemed");
+        if (extensionId !== "lhepkgngdjiiapldacaojilhdpmiemed") {
+            console.warn("⚠️ Installed extension ID does not match the expected ID (lhepkgngdjiiapldacaojilhdpmiemed). Ensure Render/GitHub settings support this ID.");
+        }
+        
+        console.log("📡 Requesting login URL from backend...");
+        ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
+            console.log("🔗 Auth redirect URL obtained successfully:", data.authUrl);
             
-            console.log("📥 Redirect URL received from WebAuthFlow:", redirectUrl);
-            
-            if (!redirectUrl) {
-                console.error("❌ WebAuthFlow callback received null or empty redirectUrl.");
-                alert("Login failed: callback URL is empty.");
-                return;
-            }
-
-            try {
-                // Parse the final redirect URL (expected format: https://<extension-id>.chromiumapp.org/oauth?token=<jwt>)
-                const url = new URL(redirectUrl);
-                console.log("🔍 Parsing callback URL query parameters...");
-                const token = url.searchParams.get("token");
-                
-                if (!token) {
-                    console.error("❌ Token parameter not found in redirect URL search params.");
-                    console.log("❓ Query string contents:", url.search);
-                    alert("Login failed: token not found in the redirect callback.");
+            console.log("🚀 Launching Chrome Web Auth Flow...");
+            chrome.identity.launchWebAuthFlow({
+                url: data.authUrl,
+                interactive: true
+            }, (redirectUrl) => {
+                // Re-enable button when flow completes
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+    
+                if (chrome.runtime.lastError) {
+                    console.error("❌ Identity WebAuthFlow failed/cancelled:", chrome.runtime.lastError.message);
+                    alert("Login cancelled or failed: " + chrome.runtime.lastError.message);
                     return;
                 }
-
-                console.log("🔑 Token successfully extracted:", token.substring(0, 10) + "..." + (token.length > 10 ? "" : ""));
                 
-                console.log("💾 Persisting token to storage...");
-                StorageService.setToken(token, () => {
-                    console.log("✅ Token saved in local storage successfully.");
+                console.log("📥 Redirect URL received from WebAuthFlow:", redirectUrl);
+                
+                if (!redirectUrl) {
+                    console.error("❌ WebAuthFlow callback received null or empty redirectUrl.");
+                    alert("Login failed: callback URL is empty.");
+                    return;
+                }
+    
+                try {
+                    // Parse the final redirect URL (expected format: https://<extension-id>.chromiumapp.org/oauth?token=<jwt>)
+                    const url = new URL(redirectUrl);
+                    console.log("🔍 Parsing callback URL query parameters...");
+                    const token = url.searchParams.get("token");
                     
-                    // Fetch fresh profile state from backend
-                    console.log("👤 Fetching user profile from backend...");
-                    ApiService.get("/api/profile", token, (profile) => {
-                        console.log("✅ Profile fetched successfully:", profile);
+                    if (!token) {
+                        console.error("❌ Token parameter not found in redirect URL search params.");
+                        console.log("❓ Query string contents:", url.search);
+                        alert("Login failed: token not found in the redirect callback.");
+                        return;
+                    }
+    
+                    console.log("🔑 New token received:", token.substring(0, 10) + "...");
+                    
+                    console.log("💾 Persisting token to storage...");
+                    StorageService.setToken(token, () => {
+                        console.log("✅ Token saved.");
                         
-                        // Cache updated profile info locally
-                        StorageService.setProfile(profile, () => {
-                            console.log("✅ Profile saved in local storage successfully.");
-                            init();
+                        // Fetch fresh profile state from backend
+                        console.log("👤 Fetching new profile from backend...");
+                        ApiService.get("/api/profile", token, (profile) => {
+                            console.log("✅ New profile fetched successfully:", profile.username);
+                            
+                            // Cache updated profile info locally
+                            console.log("💾 Saving new profile to storage...");
+                            StorageService.setProfile(profile, () => {
+                                console.log("✅ Profile saved.");
+                                init();
+                            });
+                        }, (err) => {
+                            console.error("❌ Session verification / profile fetch failed:", err);
+                            alert("Profile verification failed: " + err.message);
+                            logout(); // clean local state
                         });
-                    }, (err) => {
-                        console.error("❌ Session verification / profile fetch failed:", err);
-                        alert("Profile verification failed: " + err.message);
-                        logout(); // clean local state
                     });
-                });
-
-            } catch (parseErr) {
-                console.error("❌ Failed to parse redirect URL:", parseErr);
-                alert("Login failed: Unable to parse the OAuth redirection URL.");
-            }
+    
+                } catch (parseErr) {
+                    console.error("❌ Failed to parse redirect URL:", parseErr);
+                    alert("Login failed: Unable to parse the OAuth redirection URL.");
+                }
+            });
+        }, (err) => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            console.error("❌ Login initiation failed:", err);
+            alert(`❌ Connection Failed:\nUnable to connect to the backend server.\n\nPlease ensure your backend application is running.`);
         });
-    }, (err) => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        console.error("❌ Login initiation failed:", err);
-        alert(`❌ Connection Failed:\nUnable to connect to the backend server.\n\nPlease ensure your backend application is running.`);
     });
 }
 
 function logout() {
+    console.log("🚪 Initiating logout...");
     StorageService.clearAuth(() => {
+        console.log("🧹 Storage cleared: removed token and profile on logout.");
         showLoggedOut();
     });
 }
