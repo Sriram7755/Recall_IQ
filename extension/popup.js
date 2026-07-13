@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-save-repo").addEventListener("click", saveRepository);
     document.getElementById("btn-change-repo").addEventListener("click", showRepoSetup);
     document.getElementById("btn-create-repo").addEventListener("click", createNewRepository);
+    document.getElementById("btn-refresh").addEventListener("click", refreshData);
 });
 
 function init() {
@@ -234,7 +235,7 @@ function logout() {
     });
 }
 
-function loadRepositoriesDropdown() {
+function loadRepositoriesDropdown(callback) {
     StorageService.getToken((token) => {
         const select = document.getElementById("repo-select");
         select.innerHTML = '<option value="" disabled selected>Loading repositories...</option>';
@@ -243,6 +244,7 @@ function loadRepositoriesDropdown() {
             select.innerHTML = '';
             if (repos.length === 0) {
                 select.innerHTML = '<option value="" disabled>No public repositories found</option>';
+                if (callback) callback();
                 return;
             }
 
@@ -256,8 +258,10 @@ function loadRepositoriesDropdown() {
                 opt.textContent = `${repo.full_name} ${repo.private ? '(Private)' : '(Public)'}`;
                 select.appendChild(opt);
             });
+            if (callback) callback();
         }, (err) => {
             select.innerHTML = '<option value="" disabled>Error fetching repositories</option>';
+            if (callback) callback();
         });
     });
 }
@@ -285,7 +289,7 @@ function saveRepository() {
     });
 }
 
-function loadDashboardStats() {
+function loadDashboardStats(callback) {
     StorageService.getToken((token) => {
         ApiService.get("/api/dashboard", token, (data) => {
             document.getElementById("stats-total").textContent = data.totalSolved;
@@ -300,6 +304,7 @@ function loadDashboardStats() {
             const topics = Object.entries(data.topicDistribution || {});
             if (topics.length === 0) {
                 topicsContainer.innerHTML = '<span class="text-muted" style="font-size: 11px;">No topics recorded.</span>';
+                if (callback) callback();
                 return;
             }
 
@@ -312,13 +317,15 @@ function loadDashboardStats() {
                 badge.textContent = `${name} (${count})`;
                 topicsContainer.appendChild(badge);
             });
+            if (callback) callback();
         }, (err) => {
             console.error("Fetch dashboard data failed:", err);
+            if (callback) callback();
         });
     });
 }
 
-function loadRecentSubmissions() {
+function loadRecentSubmissions(callback) {
     StorageService.getToken((token) => {
         ApiService.get("/api/submissions/recent?limit=3", token, (data) => {
             const list = document.getElementById("recent-list");
@@ -326,6 +333,7 @@ function loadRecentSubmissions() {
 
             if (data.length === 0) {
                 list.innerHTML = '<div class="text-muted" style="font-size: 11px; text-align: center; padding: 10px;">Solve problems on LeetCode to see them here!</div>';
+                if (callback) callback();
                 return;
             }
 
@@ -347,8 +355,10 @@ function loadRecentSubmissions() {
                 `;
                 list.appendChild(item);
             });
+            if (callback) callback();
         }, (err) => {
             console.error("Fetch recent submissions failed:", err);
+            if (callback) callback();
         });
     });
 }
@@ -388,6 +398,59 @@ function createNewRepository() {
             btn.innerHTML = originalText;
             console.error("Create repository failed:", err);
             alert("Error occurred while creating repository.");
+        });
+    });
+}
+
+function refreshData() {
+    const btn = document.getElementById("btn-refresh");
+    if (btn) {
+        btn.classList.add("spinning");
+        btn.disabled = true;
+    }
+
+    StorageService.getToken((token) => {
+        if (!token) {
+            if (btn) {
+                btn.classList.remove("spinning");
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        ApiService.get("/api/profile", token, (profile) => {
+            StorageService.setProfile(profile, () => {
+                // Update profile header
+                document.getElementById("user-name").textContent = profile.username;
+                document.getElementById("user-avatar").src = profile.avatarUrl;
+
+                const finish = () => {
+                    if (btn) {
+                        btn.classList.remove("spinning");
+                        btn.disabled = false;
+                    }
+                };
+
+                if (profile.repoConnected) {
+                    document.getElementById("repo-status-text").textContent = profile.activeRepo;
+                    
+                    let pending = 2;
+                    const done = () => {
+                        pending--;
+                        if (pending === 0) finish();
+                    };
+                    loadDashboardStats(done);
+                    loadRecentSubmissions(done);
+                } else {
+                    loadRepositoriesDropdown(finish);
+                }
+            });
+        }, (err) => {
+            console.error("Refresh failed:", err);
+            if (btn) {
+                btn.classList.remove("spinning");
+                btn.disabled = false;
+            }
         });
     });
 }

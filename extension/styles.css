@@ -356,6 +356,33 @@ footer {
   color: var(--text-primary);
 }
 
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+}
+
+.btn-icon:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+.btn-icon.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
 .spinner-full {
   display: flex;
   align-items: center;
@@ -370,4 +397,9 @@ footer {
   border-radius: 50%;
   border-left-color: var(--primary);
   animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
