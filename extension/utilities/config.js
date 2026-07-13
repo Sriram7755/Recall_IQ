@@ -1,8 +1,7 @@
-// Code Recall Assistant - Configuration Settings
+// RecallIQ - Configuration Settings
 const CONFIG = {
     // Backend API base URL
-    // Swap "http://localhost:8080" with your production Render deployment URL (e.g. "https://code-recall-assistant.onrender.com")
-    API_URL: "http://localhost:8080"
+    API_URL: "https://recall-iq.onrender.com"
 };
 
 // Support ES6 module import, CommonJS, and plain script loading
