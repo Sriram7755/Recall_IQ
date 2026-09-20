@@ -130,7 +130,7 @@ function loginWithGitHub() {
     // Check if chrome.identity exists (requires extension reload in chrome://extensions)
     if (!chrome.identity) {
         console.error("❌ chrome.identity API is not available.");
-        alert("⚠️ Extension API not ready: Please go to 'chrome://extensions' in your browser and click the Reload button on the Code Recall Assistant extension.");
+        alert("⚠️ Extension API not ready: Please go to 'chrome://extensions' in your browser and click the Reload button on the Recall IQ extension.");
         return;
     }
 
@@ -144,10 +144,6 @@ function loginWithGitHub() {
         
         const extensionId = chrome.runtime.id;
         console.log("🆔 Current Extension ID (chrome.runtime.id):", extensionId);
-        console.log("ℹ️ Expected Extension ID:", "lhepkgngdjiiapldacaojilhdpmiemed");
-        if (extensionId !== "lhepkgngdjiiapldacaojilhdpmiemed") {
-            console.warn("⚠️ Installed extension ID does not match the expected ID (lhepkgngdjiiapldacaojilhdpmiemed). Ensure Render/GitHub settings support this ID.");
-        }
         
         console.log("📡 Requesting login URL from backend...");
         ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
@@ -177,41 +173,50 @@ function loginWithGitHub() {
                 }
     
                 try {
-                    // Parse the final redirect URL (expected format: https://<extension-id>.chromiumapp.org/oauth?token=<jwt>)
                     const url = new URL(redirectUrl);
-                    console.log("🔍 Parsing callback URL query parameters...");
-                    const token = url.searchParams.get("token");
+                    console.log("🔍 Parsing callback URL parameters...");
+                    const code = url.searchParams.get("code");
+                    const tokenParam = url.searchParams.get("token");
                     
-                    if (!token) {
-                        console.error("❌ Token parameter not found in redirect URL search params.");
-                        console.log("❓ Query string contents:", url.search);
-                        alert("Login failed: token not found in the redirect callback.");
-                        return;
-                    }
-    
-                    console.log("🔑 New token received:", token.substring(0, 10) + "...");
-                    
-                    console.log("💾 Persisting token to storage...");
-                    StorageService.setToken(token, () => {
-                        console.log("✅ Token saved.");
-                        
-                        // Fetch fresh profile state from backend
-                        console.log("👤 Fetching new profile from backend...");
-                        ApiService.get("/api/profile", token, (profile) => {
-                            console.log("✅ New profile fetched successfully:", profile.username);
-                            
-                            // Cache updated profile info locally
-                            console.log("💾 Saving new profile to storage...");
-                            StorageService.setProfile(profile, () => {
-                                console.log("✅ Profile saved.");
-                                init();
+                    const processJwtToken = (token) => {
+                        console.log("🔑 JWT token obtained successfully:", token.substring(0, 10) + "...");
+                        console.log("💾 Persisting token to storage...");
+                        StorageService.setToken(token, () => {
+                            console.log("✅ Token saved. Fetching fresh profile from backend...");
+                            ApiService.get("/api/profile", token, (profile) => {
+                                console.log("✅ New profile fetched successfully:", profile.username);
+                                StorageService.setProfile(profile, () => {
+                                    console.log("✅ Profile saved.");
+                                    init();
+                                });
+                            }, (err) => {
+                                console.error("❌ Profile verification failed:", err);
+                                alert("Profile verification failed: " + err.message);
+                                logout();
                             });
-                        }, (err) => {
-                            console.error("❌ Session verification / profile fetch failed:", err);
-                            alert("Profile verification failed: " + err.message);
-                            logout(); // clean local state
                         });
-                    });
+                    };
+
+                    if (code) {
+                        console.log("🎟️ Exchanging single-use authorization code for JWT token...");
+                        ApiService.post("/api/auth/exchange", null, { code: code }, (res) => {
+                            if (res && res.success && res.token) {
+                                processJwtToken(res.token);
+                            } else {
+                                console.error("❌ Token exchange failed:", res ? res.message : "No response body");
+                                alert("Login failed: " + (res && res.message ? res.message : "Failed to exchange authorization code"));
+                            }
+                        }, (err) => {
+                            console.error("❌ Code exchange API call error:", err);
+                            alert("Login failed: Unable to connect to token exchange endpoint.");
+                        });
+                    } else if (tokenParam) {
+                        processJwtToken(tokenParam);
+                    } else {
+                        console.error("❌ Neither code nor token parameter found in redirect URL search params.");
+                        console.log("❓ Query string contents:", url.search);
+                        alert("Login failed: missing code/token parameter in callback URL.");
+                    }
     
                 } catch (parseErr) {
                     console.error("❌ Failed to parse redirect URL:", parseErr);

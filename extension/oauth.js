@@ -1,18 +1,15 @@
 console.log("🔑 Initializing OAuth token processor...");
 
 const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('token');
+const code = urlParams.get('code');
+const tokenParam = urlParams.get('token');
 
-if (token) {
-    // Save JWT token using StorageService
+const processJwtToken = (token) => {
     StorageService.setToken(token, () => {
         console.log("✅ Token successfully saved to extension storage.");
-        
-        // Fetch user profile immediately using ApiService
         ApiService.get("/api/profile", token, (profile) => {
             console.log("👤 Profile metadata saved.");
             StorageService.setProfile(profile, () => {
-                // Short timeout to let the user see connection success
                 setTimeout(() => {
                     window.close();
                 }, 800);
@@ -24,10 +21,33 @@ if (token) {
             }, 800);
         });
     });
+};
+
+if (code) {
+    console.log("🎟️ Exchanging single-use authorization code for JWT token...");
+    ApiService.post("/api/auth/exchange", null, { code: code }, (res) => {
+        if (res && res.success && res.token) {
+            processJwtToken(res.token);
+        } else {
+            console.error("❌ Token exchange failed:", res ? res.message : "Empty response");
+            document.querySelector('h1').textContent = "Authorization Failed";
+            document.querySelector('p').textContent = res && res.message ? res.message : "Authorization exchange failed.";
+            const spinner = document.querySelector('.spinner');
+            if (spinner) spinner.style.display = 'none';
+        }
+    }, (err) => {
+        console.error("❌ Token exchange request error:", err);
+        document.querySelector('h1').textContent = "Authorization Failed";
+        document.querySelector('p').textContent = "Unable to connect to authentication exchange endpoint.";
+        const spinner = document.querySelector('.spinner');
+        if (spinner) spinner.style.display = 'none';
+    });
+} else if (tokenParam) {
+    processJwtToken(tokenParam);
 } else {
-    console.error("❌ Token not found in callback URL query parameters.");
+    console.error("❌ Neither code nor token found in callback URL query parameters.");
     document.querySelector('h1').textContent = "Authorization Failed";
-    document.querySelector('p').textContent = "No valid security token was received from the backend service. Please try logging in again.";
+    document.querySelector('p').textContent = "No valid security token or exchange code was received from the backend service. Please try logging in again.";
     const spinner = document.querySelector('.spinner');
     if (spinner) spinner.style.display = 'none';
 }
