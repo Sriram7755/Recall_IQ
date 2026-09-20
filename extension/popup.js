@@ -22,22 +22,22 @@ function init() {
     
     StorageService.getToken((token) => {
         if (!token) {
-            console.log("🔑 No existing token found in storage.");
+            console.log("[RecallIQ] No existing token found in storage.");
             showLoggedOut();
             return;
         }
 
-        console.log("🔑 Existing token found:", token.substring(0, 10) + "...");
+        console.log("[RecallIQ] Existing token found:", token.substring(0, 10) + "...");
         
         // Fetch fresh profile state from backend to verify token validity
-        console.log("📡 Fetching user profile from backend...");
+        console.log("[RecallIQ] Fetching user profile from backend...");
         ApiService.get("/api/profile", token, (profile) => {
-            console.log("✅ Token valid. Profile loaded:", profile.username);
+            console.log("[RecallIQ] Token valid. Profile loaded:", profile.username);
             StorageService.setProfile(profile, () => {
                 showLoggedIn(profile);
             });
         }, (err) => {
-            console.error("❌ Session verification failed:", err);
+            console.error("[RecallIQ] Session verification failed:", err);
             // If token invalid/expired, log out cleanly
             logout();
         });
@@ -50,7 +50,7 @@ function showScreen(screenId) {
 }
 
 function showLoggedOut() {
-    console.log("🖥️ Transitioning to disconnected state...");
+    console.log("[RecallIQ] Transitioning to disconnected state...");
     isLoggingIn = false;
     
     // Clear user header
@@ -145,7 +145,7 @@ function toggleDiagnostics() {
 }
 
 function showLoggedIn(profile) {
-    console.log("👤 Logged in as:", profile.username);
+    console.log("[RecallIQ] Logged in as:", profile.username);
     isLoggingIn = false;
     hideLoginError();
 
@@ -184,125 +184,50 @@ function showRepoSetup() {
 
 function loginWithGitHub() {
     if (isLoggingIn) {
-        console.warn("⚠️ Login process already in progress. Ignoring duplicate click.");
-        return;
-    }
-
-    if (!chrome.identity) {
-        console.error("❌ chrome.identity API is not available.");
-        showLoginError("Extension API Not Ready", "Please reload the Recall IQ extension in chrome://extensions.", true);
+        console.warn("[RecallIQ OAuth] Login process already in progress. Ignoring duplicate click.");
         return;
     }
 
     isLoggingIn = true;
     showConnectingState();
 
-    StorageService.clearAuth(() => {
-        const extensionId = chrome.runtime.id;
-        console.log("🆔 Requesting fresh OAuth URL for extensionId:", extensionId);
-        
-        ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
-            if (!data || !data.authUrl) {
-                console.error("❌ Backend /api/auth/login returned empty or invalid payload:", data);
-                showLoginError(
-                    "Backend unavailable",
-                    "Recall IQ could not reach the authentication server. Please try again in a moment.",
-                    true,
-                    "Invalid login response payload"
-                );
-                return;
-            }
+    console.log("[RecallIQ OAuth] Requesting authentication via Background Service Worker...");
+    console.log("[RecallIQ OAuth] Extension ID:", chrome.runtime.id);
+    if (chrome.identity && chrome.identity.getRedirectURL) {
+        console.log("[RecallIQ OAuth] Redirect URL:", chrome.identity.getRedirectURL("oauth"));
+    }
 
-            const authUrl = data.authUrl;
-            try {
-                const parsedUrl = new URL(authUrl);
-                console.log("OAuth URL received:", authUrl);
-                console.log("OAuth URL length:", authUrl?.length);
-                console.log("OAuth URL protocol:", parsedUrl.protocol);
-                console.log("OAuth URL hostname:", parsedUrl.hostname);
-            } catch (urlErr) {
-                console.error("❌ Malformed OAuth URL received from backend:", authUrl, urlErr);
-            }
+    chrome.runtime.sendMessage({ type: "START_GITHUB_AUTH" }, (response) => {
+        isLoggingIn = false;
 
-            console.log("🚀 Launching Chrome Web Auth Flow...");
-            
-            chrome.identity.launchWebAuthFlow({
-                url: authUrl,
-                interactive: true
-            }, (redirectUrl) => {
-                if (chrome.runtime.lastError) {
-                    const errMsg = chrome.runtime.lastError.message || "Unknown launchWebAuthFlow error";
-                    console.error("❌ WebAuthFlow error:", errMsg);
-                    showLoginError(
-                        "Unable to connect GitHub",
-                        "GitHub authorization could not be opened. Please check your connection and try again.",
-                        false,
-                        `Chrome Identity Error: ${errMsg}`
-                    );
-                    return;
-                }
-                
-                if (!redirectUrl) {
-                    console.error("❌ WebAuthFlow callback received null redirectUrl.");
-                    showLoginError("Authorization Failed", "Callback URL was empty. Please try logging in again.", false);
-                    return;
-                }
-
-                try {
-                    const url = new URL(redirectUrl);
-                    const code = url.searchParams.get("code");
-                    const tokenParam = url.searchParams.get("token");
-                    
-                    const processJwtToken = (token) => {
-                        StorageService.setToken(token, () => {
-                            ApiService.get("/api/profile", token, (profile) => {
-                                StorageService.setProfile(profile, () => {
-                                    showLoggedIn(profile);
-                                });
-                            }, (err) => {
-                                console.error("❌ Profile fetch failed:", err);
-                                showLoginError("Session Error", "Profile verification failed: " + err.message, false);
-                                logout();
-                            });
-                        });
-                    };
-
-                    if (code) {
-                        console.log("🎟️ Exchanging authorization code for JWT...");
-                        ApiService.post("/api/auth/exchange", null, { code: code }, (res) => {
-                            if (res && res.success && res.token) {
-                                processJwtToken(res.token);
-                            } else {
-                                showLoginError("Token Exchange Failed", res ? res.message : "Failed to exchange code", false);
-                            }
-                        }, (err) => {
-                            console.error("❌ Code exchange API call error:", err);
-                            showLoginError("Backend unavailable", "Recall IQ could not reach the authentication server. Please try again in a moment.", true, err.message);
-                        });
-                    } else if (tokenParam) {
-                        processJwtToken(tokenParam);
-                    } else {
-                        showLoginError("Security Token Missing", "Neither authorization code nor token was returned in the callback.", false);
-                    }
-                } catch (parseErr) {
-                    console.error("❌ Failed to parse redirect URL:", parseErr);
-                    showLoginError("URL Parsing Error", "Unable to parse OAuth redirection callback URL.", false, parseErr.message);
-                }
-            });
-        }, (err) => {
-            console.error("❌ Login initiation failed:", err);
+        if (chrome.runtime.lastError) {
+            console.error("[RecallIQ OAuth] Service Worker message error:", chrome.runtime.lastError.message);
             showLoginError(
-                "Backend unavailable",
-                "Recall IQ could not reach the authentication server. Please try again in a moment.",
+                "Unable to connect GitHub",
+                "Extension background worker unavailable. Please reload the extension.",
                 true,
-                `API Error: ${err.message || "Failed to fetch /api/auth/login"}`
+                `Runtime Error: ${chrome.runtime.lastError.message}`
             );
-        });
+            return;
+        }
+
+        if (response && response.success && response.profile) {
+            console.log("[RecallIQ OAuth] Authentication successful. Updating UI...");
+            showLoggedIn(response.profile);
+        } else {
+            console.error("[RecallIQ OAuth] Authentication failed:", response ? response.error : "Unknown error");
+            showLoginError(
+                "Unable to connect GitHub",
+                response && response.error ? response.error : "GitHub authorization could not be opened. Please try again.",
+                response && response.isBackendUnavailable,
+                response && response.details
+            );
+        }
     });
 }
 
 function logout() {
-    console.log("🚪 Initiating logout & clearing storage...");
+    console.log("[RecallIQ] Initiating logout & clearing storage...");
     isLoggingIn = false;
     StorageService.clearAuth(() => {
         showLoggedOut();
