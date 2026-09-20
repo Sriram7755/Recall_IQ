@@ -1,4 +1,6 @@
 // Recall IQ Assistant - Popup Orchestration Script
+let isLoggingIn = false;
+
 document.addEventListener("DOMContentLoaded", () => {
     init();
     
@@ -14,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function init() {
+    isLoggingIn = false;
     showScreen("screen-loading");
     hideLoginError();
     
@@ -48,6 +51,7 @@ function showScreen(screenId) {
 
 function showLoggedOut() {
     console.log("🖥️ Transitioning to disconnected state...");
+    isLoggingIn = false;
     
     // Clear user header
     document.getElementById("user-name").textContent = "";
@@ -93,6 +97,7 @@ function showConnectingState() {
 }
 
 function showLoginError(title, message, isBackendUnavailable, diagInfo) {
+    isLoggingIn = false;
     const btn = document.getElementById("btn-login");
     const btnSpinner = document.getElementById("btn-login-spinner");
     const btnText = document.getElementById("btn-login-text");
@@ -141,6 +146,7 @@ function toggleDiagnostics() {
 
 function showLoggedIn(profile) {
     console.log("👤 Logged in as:", profile.username);
+    isLoggingIn = false;
     hideLoginError();
 
     // 1. Update Profile Area in header
@@ -177,17 +183,23 @@ function showRepoSetup() {
 }
 
 function loginWithGitHub() {
+    if (isLoggingIn) {
+        console.warn("⚠️ Login process already in progress. Ignoring duplicate click.");
+        return;
+    }
+
     if (!chrome.identity) {
         console.error("❌ chrome.identity API is not available.");
         showLoginError("Extension API Not Ready", "Please reload the Recall IQ extension in chrome://extensions.", true);
         return;
     }
 
+    isLoggingIn = true;
     showConnectingState();
 
     StorageService.clearAuth(() => {
         const extensionId = chrome.runtime.id;
-        console.log("🆔 Requesting OAuth URL for extensionId:", extensionId);
+        console.log("🆔 Requesting fresh OAuth URL for extensionId:", extensionId);
         
         ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
             if (!data || !data.authUrl) {
@@ -201,7 +213,6 @@ function loginWithGitHub() {
                 return;
             }
 
-            // Safe diagnostic logging as specified in section 1
             const authUrl = data.authUrl;
             try {
                 const parsedUrl = new URL(authUrl);
@@ -291,7 +302,8 @@ function loginWithGitHub() {
 }
 
 function logout() {
-    console.log("🚪 Initiating logout...");
+    console.log("🚪 Initiating logout & clearing storage...");
+    isLoggingIn = false;
     StorageService.clearAuth(() => {
         showLoggedOut();
     });
