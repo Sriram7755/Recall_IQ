@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -118,12 +119,16 @@ public class AuthController {
         // State expires in 5 minutes (300,000 ms)
         stateCache.put(stateKey, new StateInfo(extensionId, 300_000));
 
-        String url = String.format(
-                "https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=repo,user&state=%s",
-                clientId, redirectUri, stateKey
-        );
+        // Use UriComponentsBuilder for RFC 3986 compliant query parameter encoding
+        String url = UriComponentsBuilder.fromHttpUrl("https://github.com/login/oauth/authorize")
+                .queryParam("client_id", clientId)
+                .queryParam("redirect_uri", redirectUri)
+                .queryParam("scope", "repo,user")
+                .queryParam("state", stateKey)
+                .build(false)
+                .toUriString();
 
-        log.info("Generated OAuth authorize URL successfully with state nonce.");
+        log.info("Generated OAuth authorize URL successfully with UriComponentsBuilder and CSRF nonce.");
         return ResponseEntity.ok(Map.of("authUrl", url));
     }
 
@@ -252,9 +257,13 @@ public class AuthController {
             // Exchange code valid for 60 seconds (60,000 ms)
             exchangeCodeCache.put(authCode, new CodeInfo(jwtToken, 60_000));
 
-            // Format redirect URL back to chromiumapp.org
+            // Format redirect URL back to chromiumapp.org using UriComponentsBuilder
             String chromeRedirectUri = String.format(extensionRedirectBase, extensionId);
-            String redirectUrl = String.format("%s?code=%s", chromeRedirectUri, authCode);
+            String redirectUrl = UriComponentsBuilder.fromHttpUrl(chromeRedirectUri)
+                    .queryParam("code", authCode)
+                    .build(false)
+                    .toUriString();
+                    
             log.info("OAuth Flow Complete. Redirecting client to Chrome Extension callback.");
 
             response.sendRedirect(redirectUrl);
