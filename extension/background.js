@@ -37,13 +37,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }
 
                     const authUrl = data.authUrl;
+                    console.log("========== RECALLIQ OAUTH DEBUG ==========");
+console.log("AUTH URL:", authUrl);
+console.log("==========================================");
                     try {
-                        const parsedUrl = new URL(authUrl);
-                        console.log("[RecallIQ OAuth] OAuth URL host:", parsedUrl.hostname);
-                        console.log("[RecallIQ OAuth] OAuth URL length:", authUrl.length);
-                    } catch (e) {
-                        console.error("[RecallIQ OAuth] Invalid auth URL structure:", authUrl);
-                    }
+    const parsedUrl = new URL(authUrl);
+
+    console.log("[RecallIQ OAuth] OAuth URL host:", parsedUrl.hostname);
+    console.log("[RecallIQ OAuth] OAuth URL pathname:", parsedUrl.pathname);
+    console.log("[RecallIQ OAuth] OAuth client_id:", parsedUrl.searchParams.get("client_id"));
+    console.log("[RecallIQ OAuth] OAuth redirect_uri:", parsedUrl.searchParams.get("redirect_uri"));
+    console.log("[RecallIQ OAuth] OAuth scope:", parsedUrl.searchParams.get("scope"));
+    console.log("[RecallIQ OAuth] OAuth state present:", parsedUrl.searchParams.has("state"));
+    console.log(
+        "[RecallIQ OAuth] OAuth state length:",
+        parsedUrl.searchParams.get("state")?.length
+    );
+} catch (e) {
+    console.error("[RecallIQ OAuth] Invalid auth URL structure");
+}
 
                     console.log("[RecallIQ OAuth] Launching chrome.identity.launchWebAuthFlow...");
                     return new Promise((resolve, reject) => {

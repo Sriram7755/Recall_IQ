@@ -124,8 +124,7 @@ public class AuthController {
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", "repo,user")
-                .queryParam("state", stateKey)
-                .queryParam("prompt", "consent")
+.queryParam("state", stateKey)
                 .build()
                 .encode()
                 .toUriString();
