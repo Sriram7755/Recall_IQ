@@ -85,7 +85,7 @@ function showConnectingState() {
 
     btn.disabled = true;
     btnSpinner.style.display = "inline-block";
-    btnText.textContent = "Connecting GitHub...";
+    btnText.textContent = "Opening GitHub authorization...";
 
     const pill = document.getElementById("login-status-pill");
     pill.className = "status-pill";
@@ -190,10 +190,33 @@ function loginWithGitHub() {
         console.log("🆔 Requesting OAuth URL for extensionId:", extensionId);
         
         ApiService.get(`/api/auth/login?extensionId=${extensionId}`, null, (data) => {
-            console.log("🔗 Launching Chrome Web Auth Flow...");
+            if (!data || !data.authUrl) {
+                console.error("❌ Backend /api/auth/login returned empty or invalid payload:", data);
+                showLoginError(
+                    "Backend unavailable",
+                    "Recall IQ could not reach the authentication server. Please try again in a moment.",
+                    true,
+                    "Invalid login response payload"
+                );
+                return;
+            }
+
+            // Safe diagnostic logging as specified in section 1
+            const authUrl = data.authUrl;
+            try {
+                const parsedUrl = new URL(authUrl);
+                console.log("OAuth URL received:", authUrl);
+                console.log("OAuth URL length:", authUrl?.length);
+                console.log("OAuth URL protocol:", parsedUrl.protocol);
+                console.log("OAuth URL hostname:", parsedUrl.hostname);
+            } catch (urlErr) {
+                console.error("❌ Malformed OAuth URL received from backend:", authUrl, urlErr);
+            }
+
+            console.log("🚀 Launching Chrome Web Auth Flow...");
             
             chrome.identity.launchWebAuthFlow({
-                url: data.authUrl,
+                url: authUrl,
                 interactive: true
             }, (redirectUrl) => {
                 if (chrome.runtime.lastError) {
@@ -201,7 +224,7 @@ function loginWithGitHub() {
                     console.error("❌ WebAuthFlow error:", errMsg);
                     showLoginError(
                         "Unable to connect GitHub",
-                        "The authorization page could not be loaded. Please check your connection and try again.",
+                        "GitHub authorization could not be opened. Please check your connection and try again.",
                         false,
                         `Chrome Identity Error: ${errMsg}`
                     );

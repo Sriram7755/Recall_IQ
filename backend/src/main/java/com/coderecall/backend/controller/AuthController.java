@@ -119,16 +119,17 @@ public class AuthController {
         // State expires in 5 minutes (300,000 ms)
         stateCache.put(stateKey, new StateInfo(extensionId, 300_000));
 
-        // Use UriComponentsBuilder for RFC 3986 compliant query parameter encoding
+        // Use UriComponentsBuilder with .build().encode() for RFC 3986 percent-encoding
         String url = UriComponentsBuilder.fromHttpUrl("https://github.com/login/oauth/authorize")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", "repo,user")
                 .queryParam("state", stateKey)
-                .build(false)
+                .build()
+                .encode()
                 .toUriString();
 
-        log.info("Generated OAuth authorize URL successfully with UriComponentsBuilder and CSRF nonce.");
+        log.info("Generated OAuth authorize URL successfully with encoded UriComponentsBuilder and CSRF nonce.");
         return ResponseEntity.ok(Map.of("authUrl", url));
     }
 
@@ -261,7 +262,8 @@ public class AuthController {
             String chromeRedirectUri = String.format(extensionRedirectBase, extensionId);
             String redirectUrl = UriComponentsBuilder.fromHttpUrl(chromeRedirectUri)
                     .queryParam("code", authCode)
-                    .build(false)
+                    .build()
+                    .encode()
                     .toUriString();
                     
             log.info("OAuth Flow Complete. Redirecting client to Chrome Extension callback.");
